@@ -1,32 +1,28 @@
 server:
-  port: 8082
+  port: 8083
 
 spring:
   application:
-    name: inventory-service
+    name: payment-service
   datasource:
-    url: jdbc:postgresql://localhost:5434/inventorydb
+    url: jdbc:postgresql://localhost:5435/paymentdb
     username: postgres
     password: postgres
   jpa:
     open-in-view: false
     show-sql: true
-    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         format_sql: true
-  sql:
-    init:
-      mode: always
   kafka:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
-      group-id: inventory-service
+      group-id: payment-service
       auto-offset-reset: earliest
       key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
