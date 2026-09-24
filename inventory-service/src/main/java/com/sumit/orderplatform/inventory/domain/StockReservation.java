@@ -45,6 +45,14 @@ public class StockReservation {
         this.createdAt = Instant.now();
     }
 
+    public boolean release() {
+        if (status != ReservationStatus.RESERVED) {
+            return false;
+        }
+        this.status = ReservationStatus.RELEASED;
+        return true;
+    }
+
     public UUID getOrderId() {
         return orderId;
     }

@@ -38,6 +38,8 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
+    private String cancellationReason;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -52,6 +54,37 @@ public class Order {
         this.amount = amount;
         this.status = OrderStatus.PENDING;
         this.createdAt = Instant.now();
+    }
+
+    public boolean handleInventoryReserved() {
+        return moveTo(state().onInventoryReserved(), null);
+    }
+
+    public boolean handleInventoryFailed(String reason) {
+        return moveTo(state().onInventoryFailed(), reason);
+    }
+
+    public boolean handlePaymentCompleted() {
+        return moveTo(state().onPaymentCompleted(), null);
+    }
+
+    public boolean handlePaymentFailed(String reason) {
+        return moveTo(state().onPaymentFailed(), reason);
+    }
+
+    private OrderState state() {
+        return OrderStates.of(status);
+    }
+
+    private boolean moveTo(OrderStatus next, String reason) {
+        if (next == status) {
+            return false;
+        }
+        this.status = next;
+        if (next == OrderStatus.CANCELLED) {
+            this.cancellationReason = reason;
+        }
+        return true;
     }
 
     public UUID getId() {
@@ -76,6 +109,10 @@ public class Order {
 
     public OrderStatus getStatus() {
         return status;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
     }
 
     public Instant getCreatedAt() {

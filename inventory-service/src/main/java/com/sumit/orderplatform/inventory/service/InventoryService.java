@@ -7,6 +7,9 @@ import com.sumit.orderplatform.inventory.repository.StockReservationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+import java.util.UUID;
+
 @Service
 public class InventoryService {
 
@@ -40,5 +43,22 @@ public class InventoryService {
         reservationRepository.save(
                 new StockReservation(event.orderId(), event.productId(), event.quantity()));
         return ReservationResult.reserved();
+    }
+
+    @Transactional
+    public ReleaseResult release(UUID orderId) {
+        Optional<StockReservation> found = reservationRepository.findById(orderId);
+        if (found.isEmpty()) {
+            return ReleaseResult.notFound();
+        }
+
+        StockReservation reservation = found.get();
+        boolean released = reservation.release();
+        if (!released) {
+            return ReleaseResult.alreadyReleased();
+        }
+
+        itemRepository.release(reservation.getProductId(), reservation.getQuantity());
+        return ReleaseResult.released();
     }
 }

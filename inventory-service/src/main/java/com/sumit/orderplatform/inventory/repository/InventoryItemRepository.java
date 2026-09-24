@@ -13,4 +13,10 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, St
             + "set i.availableQuantity = i.availableQuantity - :qty "
             + "where i.productId = :productId and i.availableQuantity >= :qty")
     int reserve(@Param("productId") String productId, @Param("qty") int qty);
+
+    @Modifying(clearAutomatically = true)
+    @Query("update InventoryItem i "
+            + "set i.availableQuantity = i.availableQuantity + :qty "
+            + "where i.productId = :productId")
+    int release(@Param("productId") String productId, @Param("qty") int qty);
 }
