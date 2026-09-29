@@ -10,5 +10,6 @@ public record OrderCreatedEvent(
         String productId,
         int quantity,
         BigDecimal amount,
+        PaymentMethod paymentMethod,
         Instant createdAt) {
 }

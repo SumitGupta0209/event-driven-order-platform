@@ -1,5 +1,6 @@
 package com.sumit.orderplatform.payment.domain;
 
+import com.sumit.orderplatform.events.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -33,6 +34,10 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private PaymentMethod paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PaymentStatus status;
 
     private String failureReason;
@@ -43,23 +48,24 @@ public class Payment {
     protected Payment() {
     }
 
-    private Payment(UUID orderId, String customerId, BigDecimal amount,
+    private Payment(UUID orderId, String customerId, BigDecimal amount, PaymentMethod paymentMethod,
                     PaymentStatus status, String failureReason) {
         this.paymentId = UUID.randomUUID();
         this.orderId = orderId;
         this.customerId = customerId;
         this.amount = amount;
+        this.paymentMethod = paymentMethod;
         this.status = status;
         this.failureReason = failureReason;
         this.createdAt = Instant.now();
     }
 
-    public static Payment completed(UUID orderId, String customerId, BigDecimal amount) {
-        return new Payment(orderId, customerId, amount, PaymentStatus.COMPLETED, null);
+    public static Payment completed(UUID orderId, String customerId, BigDecimal amount, PaymentMethod paymentMethod) {
+        return new Payment(orderId, customerId, amount, paymentMethod, PaymentStatus.COMPLETED, null);
     }
 
-    public static Payment failed(UUID orderId, String customerId, BigDecimal amount, String reason) {
-        return new Payment(orderId, customerId, amount, PaymentStatus.FAILED, reason);
+    public static Payment failed(UUID orderId, String customerId, BigDecimal amount, PaymentMethod paymentMethod, String reason) {
+        return new Payment(orderId, customerId, amount, paymentMethod, PaymentStatus.FAILED, reason);
     }
 
     public UUID getPaymentId() {

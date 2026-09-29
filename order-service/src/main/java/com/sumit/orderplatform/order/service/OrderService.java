@@ -3,10 +3,10 @@ package com.sumit.orderplatform.order.service;
 import com.sumit.orderplatform.order.domain.Order;
 import com.sumit.orderplatform.order.messaging.OrderEventPublisher;
 import com.sumit.orderplatform.order.repository.OrderRepository;
+import com.sumit.orderplatform.order.web.CreateOrderRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,8 +22,13 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createOrder(String customerId, String productId, int quantity, BigDecimal amount) {
-        Order order = new Order(customerId, productId, quantity, amount);
+    public Order createOrder(CreateOrderRequest request) {
+        Order order = new Order(
+                request.customerId(),
+                request.productId(),
+                request.quantity(),
+                request.amount(),
+                request.paymentMethod());
         Order saved = orderRepository.save(order);
         eventPublisher.publishOrderCreated(saved);
         return saved;

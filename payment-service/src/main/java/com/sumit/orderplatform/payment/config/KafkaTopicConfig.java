@@ -18,4 +18,10 @@ public class KafkaTopicConfig {
     public NewTopic paymentFailedTopic() {
         return TopicBuilder.name(Topics.PAYMENT_FAILED).partitions(3).replicas(1).build();
     }
+
+    // Dead-letter topic for what this service consumes: inventory.reserved
+    @Bean
+    public NewTopic inventoryReservedDlt() {
+        return TopicBuilder.name(Topics.INVENTORY_RESERVED + ".DLT").partitions(3).replicas(1).build();
+    }
 }

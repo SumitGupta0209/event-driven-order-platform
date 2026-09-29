@@ -1,5 +1,6 @@
 package com.sumit.orderplatform.order.domain;
 
+import com.sumit.orderplatform.events.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -36,6 +37,10 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private PaymentMethod paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OrderStatus status;
 
     private String cancellationReason;
@@ -46,12 +51,13 @@ public class Order {
     protected Order() {
     }
 
-    public Order(String customerId, String productId, int quantity, BigDecimal amount) {
+    public Order(String customerId, String productId, int quantity, BigDecimal amount, PaymentMethod paymentMethod) {
         this.id = UUID.randomUUID();
         this.customerId = customerId;
         this.productId = productId;
         this.quantity = quantity;
         this.amount = amount;
+        this.paymentMethod = paymentMethod != null ? paymentMethod : PaymentMethod.CARD;
         this.status = OrderStatus.PENDING;
         this.createdAt = Instant.now();
     }
@@ -105,6 +111,10 @@ public class Order {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public PaymentMethod getPaymentMethod() {
+        return paymentMethod;
     }
 
     public OrderStatus getStatus() {

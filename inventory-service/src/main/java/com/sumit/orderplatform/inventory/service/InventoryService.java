@@ -58,6 +58,11 @@ public class InventoryService {
             return ReleaseResult.alreadyReleased();
         }
 
+        // Persist the status flip FIRST, and explicitly, before the
+        // @Modifying(clearAutomatically = true) query below detaches it.
+        reservationRepository.save(reservation);
+        reservationRepository.flush();
+
         itemRepository.release(reservation.getProductId(), reservation.getQuantity());
         return ReleaseResult.released();
     }

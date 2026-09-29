@@ -2,6 +2,7 @@ package com.sumit.orderplatform.payment.messaging;
 
 import com.sumit.orderplatform.events.InventoryReservedEvent;
 import com.sumit.orderplatform.events.Topics;
+import com.sumit.orderplatform.payment.service.IdempotencyService;
 import com.sumit.orderplatform.payment.service.PaymentResult;
 import com.sumit.orderplatform.payment.service.PaymentService;
 import org.slf4j.Logger;
@@ -18,17 +19,28 @@ public class InventoryEventsListener {
 
     private final PaymentService paymentService;
     private final PaymentEventPublisher publisher;
+    private final IdempotencyService idempotencyService;
 
-    public InventoryEventsListener(PaymentService paymentService, PaymentEventPublisher publisher) {
+    public InventoryEventsListener(PaymentService paymentService,
+                                   PaymentEventPublisher publisher,
+                                   IdempotencyService idempotencyService) {
         this.paymentService = paymentService;
         this.publisher = publisher;
+        this.idempotencyService = idempotencyService;
     }
 
     @KafkaListener(topics = Topics.INVENTORY_RESERVED)
     public void onInventoryReserved(
             InventoryReservedEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset) {
+
+        String messageKey = topic + "-" + partition + "-" + offset;
+        if (!idempotencyService.markProcessed(messageKey)) {
+            log.info("Duplicate delivery of {} ignored (orderId={})", messageKey, event.orderId());
+            return;
+        }
 
         log.info("Received inventory.reserved orderId={} customer={} amount={} partition={} offset={}",
                 event.orderId(), event.customerId(), event.amount(), partition, offset);

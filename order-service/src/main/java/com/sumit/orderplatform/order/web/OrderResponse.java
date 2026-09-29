@@ -1,5 +1,6 @@
 package com.sumit.orderplatform.order.web;
 
+import com.sumit.orderplatform.events.PaymentMethod;
 import com.sumit.orderplatform.order.domain.Order;
 import com.sumit.orderplatform.order.domain.OrderStatus;
 
@@ -13,6 +14,7 @@ public record OrderResponse(
         String productId,
         int quantity,
         BigDecimal amount,
+        PaymentMethod paymentMethod,
         OrderStatus status,
         Instant createdAt) {
 
@@ -23,6 +25,7 @@ public record OrderResponse(
                 order.getProductId(),
                 order.getQuantity(),
                 order.getAmount(),
+                order.getPaymentMethod(),
                 order.getStatus(),
                 order.getCreatedAt());
     }

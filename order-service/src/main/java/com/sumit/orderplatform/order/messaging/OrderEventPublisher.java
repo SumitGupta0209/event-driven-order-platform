@@ -30,6 +30,7 @@ public class OrderEventPublisher {
                 order.getProductId(),
                 order.getQuantity(),
                 order.getAmount(),
+                order.getPaymentMethod(),
                 order.getCreatedAt());
         send(Topics.ORDER_CREATED, order.getId().toString(), event);
     }

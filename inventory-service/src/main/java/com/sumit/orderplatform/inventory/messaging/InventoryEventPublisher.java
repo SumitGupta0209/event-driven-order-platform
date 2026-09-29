@@ -30,6 +30,7 @@ public class InventoryEventPublisher {
                 order.productId(),
                 order.quantity(),
                 order.amount(),
+                order.paymentMethod(),
                 Instant.now());
         send(Topics.INVENTORY_RESERVED, order.orderId(), event);
     }

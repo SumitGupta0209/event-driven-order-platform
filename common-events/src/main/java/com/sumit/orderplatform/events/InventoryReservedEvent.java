@@ -10,5 +10,6 @@ public record InventoryReservedEvent(
         String productId,
         int quantity,
         BigDecimal amount,
+        PaymentMethod paymentMethod,
         Instant reservedAt) {
 }
