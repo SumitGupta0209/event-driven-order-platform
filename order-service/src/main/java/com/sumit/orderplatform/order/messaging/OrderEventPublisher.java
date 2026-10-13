@@ -5,9 +5,7 @@ import com.sumit.orderplatform.events.OrderConfirmedEvent;
 import com.sumit.orderplatform.events.OrderCreatedEvent;
 import com.sumit.orderplatform.events.Topics;
 import com.sumit.orderplatform.order.domain.Order;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.sumit.orderplatform.order.outbox.OutboxWriter;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -15,12 +13,10 @@ import java.time.Instant;
 @Component
 public class OrderEventPublisher {
 
-    private static final Logger log = LoggerFactory.getLogger(OrderEventPublisher.class);
+    private final OutboxWriter outboxWriter;
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-
-    public OrderEventPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
+    public OrderEventPublisher(OutboxWriter outboxWriter) {
+        this.outboxWriter = outboxWriter;
     }
 
     public void publishOrderCreated(Order order) {
@@ -32,7 +28,7 @@ public class OrderEventPublisher {
                 order.getAmount(),
                 order.getPaymentMethod(),
                 order.getCreatedAt());
-        send(Topics.ORDER_CREATED, order.getId().toString(), event);
+        outboxWriter.write(order.getId().toString(), Topics.ORDER_CREATED, event);
     }
 
     public void publishOrderConfirmed(Order order) {
@@ -41,7 +37,7 @@ public class OrderEventPublisher {
                 order.getCustomerId(),
                 order.getAmount(),
                 Instant.now());
-        send(Topics.ORDER_CONFIRMED, order.getId().toString(), event);
+        outboxWriter.write(order.getId().toString(), Topics.ORDER_CONFIRMED, event);
     }
 
     public void publishOrderCancelled(Order order) {
@@ -50,21 +46,6 @@ public class OrderEventPublisher {
                 order.getCustomerId(),
                 order.getCancellationReason(),
                 Instant.now());
-        send(Topics.ORDER_CANCELLED, order.getId().toString(), event);
-    }
-
-    private void send(String topic, String key, Object event) {
-        kafkaTemplate.send(topic, key, event)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Failed to publish {} for order {}", topic, key, ex);
-                    } else {
-                        log.info("Published {} key={} partition={} offset={}",
-                                topic,
-                                key,
-                                result.getRecordMetadata().partition(),
-                                result.getRecordMetadata().offset());
-                    }
-                });
+        outboxWriter.write(order.getId().toString(), Topics.ORDER_CANCELLED, event);
     }
 }

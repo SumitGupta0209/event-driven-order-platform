@@ -2,6 +2,7 @@ package com.sumit.orderplatform.order.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaOperations;
@@ -15,7 +16,9 @@ public class KafkaErrorHandlingConfig {
     private static final Logger log = LoggerFactory.getLogger(KafkaErrorHandlingConfig.class);
 
     @Bean
-    public DefaultErrorHandler kafkaErrorHandler(KafkaOperations<Object, Object> kafkaOperations) {
+    public DefaultErrorHandler kafkaErrorHandler(
+            @Qualifier("kafkaTemplate") KafkaOperations<String, Object> kafkaOperations) {
+
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaOperations,
                 (record, ex) -> new org.apache.kafka.common.TopicPartition(

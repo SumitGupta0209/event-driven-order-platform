@@ -1,5 +1,6 @@
 package com.sumit.orderplatform.order.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sumit.orderplatform.events.InventoryFailedEvent;
 import com.sumit.orderplatform.events.InventoryReservedEvent;
 import com.sumit.orderplatform.events.PaymentCompletedEvent;
@@ -26,24 +27,28 @@ public class OrderSagaListener {
     private final OrderStatusService statusService;
     private final OrderEventPublisher publisher;
     private final IdempotencyService idempotencyService;
+    private final ObjectMapper objectMapper;
 
     public OrderSagaListener(OrderStatusService statusService,
                              OrderEventPublisher publisher,
-                             IdempotencyService idempotencyService) {
+                             IdempotencyService idempotencyService,
+                             ObjectMapper objectMapper) {
         this.statusService = statusService;
         this.publisher = publisher;
         this.idempotencyService = idempotencyService;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(topics = Topics.INVENTORY_RESERVED)
     public void onInventoryReserved(
-            InventoryReservedEvent event,
+            String payload,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset) {
-        if (!seenFirstTime(topic, partition, offset, event.orderId())) {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
+        if (!seenFirstTime(topic, partition, offset)) {
             return;
         }
+        InventoryReservedEvent event = objectMapper.readValue(payload, InventoryReservedEvent.class);
         log.info("Received inventory.reserved orderId={}", event.orderId());
         afterTransition(Topics.INVENTORY_RESERVED, event.orderId(),
                 statusService.inventoryReserved(event.orderId()));
@@ -51,13 +56,14 @@ public class OrderSagaListener {
 
     @KafkaListener(topics = Topics.INVENTORY_FAILED)
     public void onInventoryFailed(
-            InventoryFailedEvent event,
+            String payload,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset) {
-        if (!seenFirstTime(topic, partition, offset, event.orderId())) {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
+        if (!seenFirstTime(topic, partition, offset)) {
             return;
         }
+        InventoryFailedEvent event = objectMapper.readValue(payload, InventoryFailedEvent.class);
         log.info("Received inventory.failed orderId={} reason={}", event.orderId(), event.reason());
         afterTransition(Topics.INVENTORY_FAILED, event.orderId(),
                 statusService.inventoryFailed(event.orderId(), event.reason()));
@@ -65,13 +71,14 @@ public class OrderSagaListener {
 
     @KafkaListener(topics = Topics.PAYMENT_COMPLETED)
     public void onPaymentCompleted(
-            PaymentCompletedEvent event,
+            String payload,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset) {
-        if (!seenFirstTime(topic, partition, offset, event.orderId())) {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
+        if (!seenFirstTime(topic, partition, offset)) {
             return;
         }
+        PaymentCompletedEvent event = objectMapper.readValue(payload, PaymentCompletedEvent.class);
         log.info("Received payment.completed orderId={}", event.orderId());
         afterTransition(Topics.PAYMENT_COMPLETED, event.orderId(),
                 statusService.paymentCompleted(event.orderId()));
@@ -79,22 +86,23 @@ public class OrderSagaListener {
 
     @KafkaListener(topics = Topics.PAYMENT_FAILED)
     public void onPaymentFailed(
-            PaymentFailedEvent event,
+            String payload,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset) {
-        if (!seenFirstTime(topic, partition, offset, event.orderId())) {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
+        if (!seenFirstTime(topic, partition, offset)) {
             return;
         }
+        PaymentFailedEvent event = objectMapper.readValue(payload, PaymentFailedEvent.class);
         log.info("Received payment.failed orderId={} reason={}", event.orderId(), event.reason());
         afterTransition(Topics.PAYMENT_FAILED, event.orderId(),
                 statusService.paymentFailed(event.orderId(), event.reason()));
     }
 
-    private boolean seenFirstTime(String topic, int partition, long offset, UUID orderId) {
+    private boolean seenFirstTime(String topic, int partition, long offset) {
         String messageKey = topic + "-" + partition + "-" + offset;
         if (!idempotencyService.markProcessed(messageKey)) {
-            log.info("Duplicate delivery of {} ignored (orderId={})", messageKey, orderId);
+            log.info("Duplicate delivery of {} ignored", messageKey);
             return false;
         }
         return true;
