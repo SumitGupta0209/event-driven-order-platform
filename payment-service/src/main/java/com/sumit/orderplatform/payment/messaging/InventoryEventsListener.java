@@ -1,5 +1,6 @@
 package com.sumit.orderplatform.payment.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sumit.orderplatform.events.InventoryReservedEvent;
 import com.sumit.orderplatform.events.Topics;
 import com.sumit.orderplatform.payment.service.IdempotencyService;
@@ -20,27 +21,32 @@ public class InventoryEventsListener {
     private final PaymentService paymentService;
     private final PaymentEventPublisher publisher;
     private final IdempotencyService idempotencyService;
+    private final ObjectMapper objectMapper;
 
     public InventoryEventsListener(PaymentService paymentService,
                                    PaymentEventPublisher publisher,
-                                   IdempotencyService idempotencyService) {
+                                   IdempotencyService idempotencyService,
+                                   ObjectMapper objectMapper) {
         this.paymentService = paymentService;
         this.publisher = publisher;
         this.idempotencyService = idempotencyService;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(topics = Topics.INVENTORY_RESERVED)
     public void onInventoryReserved(
-            InventoryReservedEvent event,
+            String payload,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset) {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
 
         String messageKey = topic + "-" + partition + "-" + offset;
         if (!idempotencyService.markProcessed(messageKey)) {
-            log.info("Duplicate delivery of {} ignored (orderId={})", messageKey, event.orderId());
+            log.info("Duplicate delivery of {} ignored", messageKey);
             return;
         }
+
+        InventoryReservedEvent event = objectMapper.readValue(payload, InventoryReservedEvent.class);
 
         log.info("Received inventory.reserved orderId={} customer={} amount={} partition={} offset={}",
                 event.orderId(), event.customerId(), event.amount(), partition, offset);

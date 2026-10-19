@@ -1,5 +1,6 @@
 package com.sumit.orderplatform.inventory.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sumit.orderplatform.events.PaymentFailedEvent;
 import com.sumit.orderplatform.events.Topics;
 import com.sumit.orderplatform.inventory.service.IdempotencyService;
@@ -19,24 +20,30 @@ public class PaymentEventsListener {
 
     private final InventoryService inventoryService;
     private final IdempotencyService idempotencyService;
+    private final ObjectMapper objectMapper;
 
-    public PaymentEventsListener(InventoryService inventoryService, IdempotencyService idempotencyService) {
+    public PaymentEventsListener(InventoryService inventoryService,
+                                 IdempotencyService idempotencyService,
+                                 ObjectMapper objectMapper) {
         this.inventoryService = inventoryService;
         this.idempotencyService = idempotencyService;
+        this.objectMapper = objectMapper;
     }
 
     @KafkaListener(topics = Topics.PAYMENT_FAILED)
     public void onPaymentFailed(
-            PaymentFailedEvent event,
+            String payload,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset) {
+            @Header(KafkaHeaders.OFFSET) long offset) throws Exception {
 
         String messageKey = topic + "-" + partition + "-" + offset;
         if (!idempotencyService.markProcessed(messageKey)) {
-            log.info("Duplicate delivery of {} ignored (orderId={})", messageKey, event.orderId());
+            log.info("Duplicate delivery of {} ignored", messageKey);
             return;
         }
+
+        PaymentFailedEvent event = objectMapper.readValue(payload, PaymentFailedEvent.class);
 
         log.info("Received payment.failed orderId={} reason={}", event.orderId(), event.reason());
 

@@ -1,5 +1,7 @@
 package com.sumit.orderplatform.order.web;
 
+import com.sumit.orderplatform.order.client.InventoryStockResponse;
+import com.sumit.orderplatform.order.client.InventoryStockService;
 import com.sumit.orderplatform.order.domain.Order;
 import com.sumit.orderplatform.order.service.OrderService;
 import jakarta.validation.Valid;
@@ -20,9 +22,11 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final InventoryStockService inventoryStockService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, InventoryStockService inventoryStockService) {
         this.orderService = orderService;
+        this.inventoryStockService = inventoryStockService;
     }
 
     @PostMapping
@@ -36,5 +40,10 @@ public class OrderController {
         return orderService.findById(id)
                 .map(OrderResponse::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+    }
+
+    @GetMapping("/check-stock/{productId}")
+    public InventoryStockResponse checkStock(@PathVariable String productId) {
+        return inventoryStockService.checkStock(productId);
     }
 }

@@ -11,11 +11,15 @@ spring:
   jpa:
     open-in-view: false
     show-sql: true
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         format_sql: true
+  sql:
+    init:
+      mode: always
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -28,5 +32,11 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
-        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
-        spring.json.trusted.packages: com.sumit.orderplatform.events
+        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
